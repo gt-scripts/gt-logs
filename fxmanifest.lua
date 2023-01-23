@@ -1,7 +1,7 @@
 fx_version 'cerulean'
 game 'gta5'
 
-description 'TTC Base Script'
+description 'TTC Logger'
 version '1.0.0'
 
 shared_scripts {
