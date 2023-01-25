@@ -4,6 +4,29 @@ local logEnable = GetConvar("log.enable", false)
 local logLevel = GetConvar("log.level", "INFO")
 local logDate = GetConvar("log.date", "%d/%m/%Y %X")
 
+local allowedLevels = {
+    ["TRACE"] = "TRACE",
+    ["DEBUG"] = "DEBUG,TRACE",
+    ["INFO"] = "INFO,DEBUG,TRACE",
+    ["WARN"] = "WARN,INFO,DEBUG,TRACE",
+    ["ERROR"] = "ERROR,WARN,INFO,DEBUG,TRACE",
+    ["FATAL"] = "FATAL,ERROR,WARN,INFO,DEBUG,TRACE"
+}
+
+local levelColor = {
+    ["TRACE"] = "^9TRACE^7",
+    ["DEBUG"] = "^2DEBUG^7",
+    ["INFO"] = "^5INFO^7",
+    ["WARN"] = "^3WARN^7",
+    ["ERROR"] = "^1ERROR^7",
+    ["FATAL"] = "^8FATAL^7"
+}
+
+local sideColor = {
+    ["CLIENT"] = "^2CLIENT^7",
+    ["SERVER"] = "^5SERVER^7"
+}
+
 RegisterCommand('logTest', function(source, args, rawCommand)
     logger.trace(GetCurrentResourceName(), logLevel)
 	logger.info(GetCurrentResourceName(), logLevel)
@@ -15,22 +38,6 @@ end)
 -------------------------------------------------------------------
 -- [ LOCAL FUNCTIONS ]
 -------------------------------------------------------------------
-local function getLevel(level)
-    if(level == "INFO") then
-        return string.format("^5%s^7", level)
-    elseif(level == "WARN") then
-        return string.format("^3%s^7", level)
-    elseif(level == "TRACE") then
-        return string.format("^9%s^7", level)
-    elseif(level == "ERROR") then
-        return string.format("^1%s^7", level)
-    elseif(level == "FATAL") then
-        return string.format("^8%s^7", level)
-    else
-        return string.format("^2%s^7", level)
-    end
-end
-
 local function addBrackets(value)
     return string.format("[%s]", value)
 end
@@ -44,48 +51,42 @@ local function log(level, resource, side, value)
     if(logDate ~= "") then
         line = addBrackets(os.date(logDate))
     end
-    line = fusion(line, addBrackets(getLevel(level)))
-    line = fusion(line, addBrackets(side))
+    line = fusion(line, addBrackets(levelColor[level]))
+    line = fusion(line, addBrackets(sideColor[side] or side))
     line = fusion(line, addBrackets(resource))
     line = fusion(line, "---")
     line = fusion(line, value)
     print(line)
 end
 
-local function trace(resource, side, value)
+local function sendToLog(level, resource, side, value)
     if(not logEnable) then return end
-    if(not string.find("TRACE", logLevel)) then return end
-    log("TRACE", resource, side, value)
+    if(not string.find(allowedLevels[level], logLevel)) then return end
+    log(level, resource, side, value)
+end
+
+local function trace(resource, side, value)
+    sendToLog("TRACE", resource, side, value)
 end
 
 local function debug(resource, side, value)
-    if(not logEnable) then return end
-    if(not string.find("DEBUG,TRACE", logLevel)) then return end
-    log("DEBUG", resource, side, value)
+    sendToLog("DEBUG", resource, side, value)
 end
 
 local function info(resource, side, value)
-    if(not logEnable) then return end
-    if(not string.find("INFO,DEBUG,TRACE", logLevel)) then return end
-    log("INFO", resource, side, value)
+    sendToLog("INFO", resource, side, value)
 end
 
 local function warn(resource, side, value)
-    if(not logEnable) then return end
-    if(not string.find("WARN,INFO,DEBUG,TRACE", logLevel)) then return end
-    log("WARN", resource, side, value)
+    sendToLog("WARN", resource, side, value)
 end
 
 local function error(resource, side, value)
-    if(not logEnable) then return end
-    if(not string.find("ERROR,WARN,INFO,DEBUG,TRACE", logLevel)) then return end
-    log("ERROR", resource, side, value)
+    sendToLog("ERROR", resource, side, value)
 end
 
 local function fatal(resource, side, value)
-    if(not logEnable) then return end
-    if(not string.find("FATAL,ERROR,WARN,INFO,DEBUG,TRACE", logLevel)) then return end
-    log("FATAL", resource, side, value)
+    sendToLog("FATAL", resource, side, value)
 end
 -------------------------------------------------------------------
 -- [ FUNCTIONS ]
@@ -113,3 +114,11 @@ end
 function logger.fatal(resource, value)
     fatal(resource, "SERVER", value)
 end
+-------------------------------------------------------------------
+-- [ EVENTS ]
+-------------------------------------------------------------------
+RegisterServerEvent("Logs:Log", function(level, resource, side, value)
+    sendToLog(level, resource, side, value)
+end)
+
+return logger
