@@ -1,6 +1,7 @@
 logger = logger or {}
 
 local logEnable = GetConvar("log.enable", false)
+local logClient = GetConvar("log.client", true)
 local logLevel = GetConvar("log.level", "INFO")
 local logDate = GetConvar("log.date", "%d/%m/%Y %X")
 
@@ -57,12 +58,16 @@ local function log(level, resource, side, value)
     line = fusion(line, "---")
     line = fusion(line, value)
     print(line)
+    return line
 end
 
 local function sendToLog(level, resource, side, value)
     if(not logEnable) then return end
+    if(allowedLevels[level] == nil) then
+        log(allowedLevels["WARN"], resource, side, value)
+    end
     if(not string.find(allowedLevels[level], logLevel)) then return end
-    log(level, resource, side, value)
+    return log(level, resource, side, value)
 end
 
 local function trace(resource, side, value)
@@ -117,8 +122,23 @@ end
 -------------------------------------------------------------------
 -- [ EVENTS ]
 -------------------------------------------------------------------
-RegisterServerEvent("Logs:Log", function(level, resource, side, value)
-    sendToLog(level, resource, side, value)
+RegisterServerEvent("Logs:Log", function(level, resource, value)
+    sendToLog(level, resource, "SERVER", value)
+end)
+
+RegisterServerEvent("Logs:Client", function(level, resource, value)
+    local log = sendToLog(level, resource, "CLIENT", value)
+    if(logClient) then
+        TriggerClientEvent("Logs:LogBack", source, log)
+    end
+end)
+
+RegisterServerEvent("onServerResourceStop", function(resource)
+    sendToLog("TRACE", resource, "SERVER", "Stopped")
+end)
+
+RegisterServerEvent("onServerResourceStart", function(resource)
+    sendToLog("TRACE", resource, "SERVER", "Started")
 end)
 
 return logger
