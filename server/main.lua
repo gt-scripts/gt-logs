@@ -1,7 +1,7 @@
 logger = logger or {}
 
 local logEnable = GetConvar("log.enable", false)
-local logClient = GetConvar("log.client", true)
+local logClient = GetConvar("log.client", false)
 local logLevel = GetConvar("log.level", "INFO")
 local logDate = GetConvar("log.date", "%d/%m/%Y %X")
 
@@ -48,7 +48,7 @@ local function fusion(val1, val2)
 end
 
 local function log(level, resource, side, value)
-    local line = nil
+    local line = ""
     if(logDate ~= "") then
         line = addBrackets(os.date(logDate))
     end
@@ -66,8 +66,7 @@ local function sendToLog(level, resource, side, value)
     if((not logEnable) or (resourceLogLevel == "INFO")) then return end
     if(allowedLevels[level] == nil) then
         log("WARN", resource, side, string.format("LogLevel %s not found, '%s' will be used.", level, resourceLogLevel))
-        log(resourceLogLevel, resource, side, value)
-        return
+        return log(resourceLogLevel, resource, side, value)
     end
     if(not string.find(allowedLevels[level], logLevel) and not string.find(allowedLevels[level], resourceLogLevel)) then return end
     return log(level, resource, side, value)
@@ -131,7 +130,7 @@ end)
 
 RegisterServerEvent("Logs:Client", function(level, resource, value)
     local log = sendToLog(level, resource, "CLIENT", value)
-    if(logClient) then
+    if(log and logClient) then
         TriggerClientEvent("Logs:LogBack", source, log)
     end
 end)
