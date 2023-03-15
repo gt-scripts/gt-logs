@@ -62,8 +62,8 @@ local function log(level, resource, side, value)
 end
 
 local function sendToLog(level, resource, side, value)
-    local resourceLogLevel = GetConvar(resource..".log.level", "INFO")
-    if((not logEnable) or (resourceLogLevel == "INFO")) then return end
+    local resourceLogLevel = GetConvar(resource..".log.level", "NONE")
+    if((not logEnable) and (resourceLogLevel == "NONE")) then return end
     if(allowedLevels[level] == nil) then
         log("WARN", resource, side, string.format("LogLevel %s not found, '%s' will be used.", level, resourceLogLevel))
         return log(resourceLogLevel, resource, side, value)
