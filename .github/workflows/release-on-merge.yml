@@ -44,8 +44,9 @@ jobs:
         id: release
         with:
           tag_name: v${{ steps.extract_version.outputs.version }}
+          release_name:
           make_latest: true
-          body: release_body.txt
+          body_path: release_body.txt
 
 
       - name: Upload artifacts
