@@ -40,10 +40,13 @@ jobs:
           zip -r ${{ github.event.repository.name }}.zip ${{ github.event.repository.name }}
 
       - name: Generate Release
-        env:
-            GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        uses: shogo82148/actions-create-release@v1
         id: release
-        run: gh release create v${{ steps.extract_version.outputs.version }} --generate-notes
+        with:
+          tag_name: v${{ steps.extract_version.outputs.version }}
+          make_latest: true
+          body: release_body.txt
+
 
       - name: Upload artifacts
         uses: shogo82148/actions-upload-release-asset@v1
