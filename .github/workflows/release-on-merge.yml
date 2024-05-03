@@ -17,6 +17,12 @@ jobs:
         id: extract_version
         run: |
           echo "::set-output name=version::$(cat version)"
+      - name: Get commit messages
+        id: get_commit_messages
+        run: |
+          curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits" \
+          | jq -r '.[].commit.message' > release_body.txt
 
       - name: Update version in file
         run: |
@@ -38,5 +44,6 @@ jobs:
         with:
           tag_name: ${{ steps.extract_version.outputs.version }}
           release_name: Release ${{ steps.extract_version.outputs.version }}
-          body: |
-            Descreva as mudanças nesta versão aqui.
+          body_path: release_body.txt
+          draft: false
+          prerelease: false
