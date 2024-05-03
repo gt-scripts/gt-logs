@@ -28,6 +28,16 @@ jobs:
         run: |
           sed -i "s/VERSION_IDENTIFIER/${{ steps.extract_version.outputs.version }}/g" fxmanifest.lua
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.repository }}
+          path: |
+            !README.md
+            !version
+          if-no-files-found: error
+          overwrite: true
+
       - name: Generate Release
         env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
