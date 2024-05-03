@@ -16,7 +16,7 @@ jobs:
       - name: Get version from file
         id: extract_version
         run: |
-          echo "::set-output name=version::$(cat version)"
+          echo "version=$(cat version) >> $GITHUB_OUTPUT"
       - name: Get commit messages
         id: get_commit_messages
         run: |
