@@ -32,8 +32,8 @@ jobs:
         run: |
           mkdir -p release/${{ github.event.repository.name }}
           cp fxmanifest.lua release/${{ github.event.repository.name }}
-          cp -r client/* release/${{ github.event.repository.name }}/client/
-          cp -r server/* release/${{ github.event.repository.name }}/server/
+          cp -r client/* release/${{ github.event.repository.name }}/client
+          cp -r server/* release/${{ github.event.repository.name }}/server
           cd release
           zip -r ${{ github.event.repository.name }}.zip ${{ github.event.repository.name }}
 
