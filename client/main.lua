@@ -1,15 +1,23 @@
-RegisterNetEvent("Logs:Log", function(level, resource, value)
-    TriggerServerEvent("Logs:Client", level, resource, value)
+local scriptName = GetCurrentResourceName()
+
+local function log(data, level, resource)
+    TriggerServerEvent(scriptName .. ":Server:Log", data, level, resource)
+end
+
+RegisterNetEvent(scriptName, function(data, level, resource)
+    log(data, level, resource)
 end)
 
-RegisterNetEvent("Logs:LogBack", function(log)
-    print(log)
+RegisterNetEvent(scriptName .. ":Client:Log", function(data)
+    print(data)
 end)
 
 RegisterNetEvent("onClientResourceStop", function(resource)
-    TriggerEvent("Logs:Log", "TRACE", resource, "Stopped")
+    log("Stopped", "TRACE", resource)
 end)
 
 RegisterNetEvent("onClientResourceStart", function(resource)
-    TriggerEvent("Logs:Log", "TRACE", resource, "Started")
+    log("Started", "TRACE", resource)
 end)
+
+exports('log', log)

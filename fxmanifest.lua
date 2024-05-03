@@ -1,10 +1,13 @@
 fx_version 'cerulean'
 game 'gta5'
 
-description 'TTC Logger'
-version '1.0.0'
+description 'GT Logger'
+author "GFive"
+version "VERSION_IDENTIFIER"
 
-server_script {
+shared_scripts { }
+
+server_scripts {
     "server/*.lua"
 }
 

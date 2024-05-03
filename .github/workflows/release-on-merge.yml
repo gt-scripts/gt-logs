@@ -1,0 +1,42 @@
+name: Release on PR merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get version from file
+        id: extract_version
+        run: |
+          echo "::set-output name=version::$(cat version)"
+
+      - name: Update version in file
+        run: |
+          sed -i "s/VERSION_IDENTIFIER/${{ steps.extract_version.outputs.version }}/g" fxmanifest.lua
+
+      - name: Create release zip
+        run: git archive --format=zip --output=release.zip HEAD $(git diff-tree -r --no-commit-id --name-only --diff-filter=ACMRT HEAD^ HEAD | grep -vE 'version|README.md')
+
+      - name: Upload release zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: release
+          path: release.zip
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.extract_version.outputs.version }}
+          release_name: Release ${{ steps.extract_version.outputs.version }}
+          body: |
+            Descreva as mudanças nesta versão aqui.
