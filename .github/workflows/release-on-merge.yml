@@ -33,8 +33,10 @@ jobs:
         with:
           name: ${{ github.repository }}
           path: |
+            /**/*
             !README.md
             !version
+            !.github/**/*
           if-no-files-found: error
           overwrite: true
 
