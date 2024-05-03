@@ -28,17 +28,20 @@ jobs:
         run: |
           sed -i "s/VERSION_IDENTIFIER/${{ steps.extract_version.outputs.version }}/g" fxmanifest.lua
 
+      - name: Copy files
+        run: |
+          mkdir -p release/${{ github.event.repository.name }}
+          cp fxmanifest.lua release/${{ github.event.repository.name }}
+          cp -r client/* release/${{ github.event.repository.name }}/client/
+          cp -r server/* release/${{ github.event.repository.name }}/server/
+          cd release
+          zip -r ${{ github.event.repository.name }}.zip ${{ github.event.repository.name }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}
-          path: |
-            /client/*
-            /server/*
-            fxmanifest.lua
-            !README.md
-            !version
-            !.github/**/*
+          path: /release/${{ github.event.repository.name }}
           if-no-files-found: error
           overwrite: true
 
