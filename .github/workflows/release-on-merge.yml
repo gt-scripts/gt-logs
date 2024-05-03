@@ -28,16 +28,6 @@ jobs:
         run: |
           sed -i "s/VERSION_IDENTIFIER/${{ steps.extract_version.outputs.version }}/g" fxmanifest.lua
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2.0.4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.extract_version.outputs.version }}
-          body_path: release_body.txt
-          draft: false
-          prerelease: false
-          files: |
-            client/*
-            server/*
-            fxmanifest.lua
+      - name: Generate Release
+        id: release
+        run: gh release create v${{ steps.extract_version.outputs.version }} --generate-notes
