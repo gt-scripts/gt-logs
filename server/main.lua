@@ -1,146 +1,105 @@
-logger = logger or {}
-
-local logEnable = GetConvar("log.enable", false)
-local logClient = GetConvar("log.client", false)
-local logLevel = GetConvar("log.level", "INFO")
-local logDate = GetConvar("log.date", "%d/%m/%Y %X")
-
-local allowedLevels = {
-    ["TRACE"] = "TRACE",
-    ["DEBUG"] = "DEBUG,TRACE",
-    ["INFO"] = "INFO,DEBUG,TRACE",
-    ["WARN"] = "WARN,INFO,DEBUG,TRACE",
-    ["ERROR"] = "ERROR,WARN,INFO,DEBUG,TRACE",
-    ["FATAL"] = "FATAL,ERROR,WARN,INFO,DEBUG,TRACE"
-}
-
-local levelColor = {
-    ["TRACE"] = "^9TRACE^7",
-    ["DEBUG"] = "^2DEBUG^7",
-    ["INFO"] = "^5INFO^7",
-    ["WARN"] = "^3WARN^7",
-    ["ERROR"] = "^1ERROR^7",
-    ["FATAL"] = "^8FATAL^7"
+local scriptName = GetCurrentResourceName()
+local logLevels = {
+    TRACE = {
+        priority = 6,
+        allows = "TRACE",
+        color = "^9TRACE^7"
+    },
+    DEBUG = {
+        priority = 5,
+        allows = "DEBUG,TRACE",
+        color = "^2DEBUG^7"
+    },
+    INFO = {
+        priority = 4,
+        allows = "INFO,DEBUG,TRACE",
+        color = "^5INFO^7"
+    },
+    WARN = {
+        priority = 3,
+        allows = "WARN,INFO,DEBUG,TRACE",
+        color = "^3WARN^7"
+    },
+    ERROR = {
+        priority = 2,
+        allows = "ERROR,WARN,INFO,DEBUG,TRACE",
+        color = "^1ERROR^7"
+    },
+    FATAL = {
+        priority = 1,
+        allows = "FATAL,ERROR,WARN,INFO,DEBUG,TRACE",
+        color = "^8FATAL^7"
+    },
+    NONE = {
+        priority = 0
+    }
 }
 
 local sideColor = {
-    ["CLIENT"] = "^2CLIENT^7",
-    ["SERVER"] = "^5SERVER^7"
+    CLIENT = "^2CLIENT^7",
+    SERVER = "^5SERVER^7"
 }
 
-RegisterCommand('logTest', function(source, args, rawCommand)
-    logger.trace(GetCurrentResourceName(), logLevel)
-	logger.info(GetCurrentResourceName(), logLevel)
-    logger.warn(GetCurrentResourceName(), logLevel)
-    logger.debug(GetCurrentResourceName(), logLevel)
-    logger.error(GetCurrentResourceName(), logLevel)
-    logger.fatal(GetCurrentResourceName(), logLevel)
-end)
--------------------------------------------------------------------
--- [ LOCAL FUNCTIONS ]
--------------------------------------------------------------------
 local function addBrackets(value)
     return string.format("[%s]", value)
 end
 
-local function fusion(val1, val2)
+local function concat(val1, val2)
     return string.format("%s %s", val1 or "", val2 or "")
 end
 
-local function log(level, resource, side, value)
+local function log(source, data, level, resource, side)
+    local resourceLogLevel = Config.ResourceOverride[resource] or "NONE"
+    if not Config.Enable then
+        return
+    end
+
+    local finalLevel = Config.LogLevel
+
+    if logLevels[resourceLogLevel].priority >= logLevels[Config.LogLevel].priority then
+        finalLevel = resourceLogLevel
+    end
+
+    if not string.find(logLevels[level].allows, finalLevel) then
+        return
+    end
+
     local line = ""
-    if(logDate ~= "") then
-        line = addBrackets(os.date(logDate))
+    if (Config.DateFormat ~= "") then
+        line = addBrackets(os.date(Config.DateFormat))
     end
-    line = fusion(line, addBrackets(levelColor[level]))
-    line = fusion(line, addBrackets(sideColor[side] or side))
-    line = fusion(line, addBrackets(resource))
-    line = fusion(line, "---")
-    line = fusion(line, value)
+    line = concat(line, addBrackets(logLevels[level].color))
+    line = concat(line, addBrackets(sideColor[side] or side))
+    line = concat(line, addBrackets(resource))
+    line = concat(line, "---")
+    line = concat(line, data)
     print(line)
-    return line
-end
-
-local function sendToLog(level, resource, side, value)
-    local resourceLogLevel = GetConvar(resource..".log.level", "NONE")
-    if((not logEnable) and (resourceLogLevel == "NONE")) then return end
-    if(allowedLevels[level] == nil) then
-        log("WARN", resource, side, string.format("LogLevel %s not found, '%s' will be used.", level, resourceLogLevel))
-        return log(resourceLogLevel, resource, side, value)
+    if Config.EnableClient and source > 0 then
+        TriggerClientEvent(scriptName .. ":Client:Log", source, line)
     end
-    if(not string.find(allowedLevels[level], logLevel) and not string.find(allowedLevels[level], resourceLogLevel)) then return end
-    return log(level, resource, side, value)
 end
 
-local function trace(resource, side, value)
-    sendToLog("TRACE", resource, side, value)
-end
-
-local function debug(resource, side, value)
-    sendToLog("DEBUG", resource, side, value)
-end
-
-local function info(resource, side, value)
-    sendToLog("INFO", resource, side, value)
-end
-
-local function warn(resource, side, value)
-    sendToLog("WARN", resource, side, value)
-end
-
-local function error(resource, side, value)
-    sendToLog("ERROR", resource, side, value)
-end
-
-local function fatal(resource, side, value)
-    sendToLog("FATAL", resource, side, value)
-end
--------------------------------------------------------------------
--- [ FUNCTIONS ]
--------------------------------------------------------------------
-function logger.trace(resource, value)
-    trace(resource, "SERVER", value)
-end
-
-function logger.debug(resource, value)
-    debug(resource, "SERVER", value)
-end
-
-function logger.info(resource, value)
-    info(resource, "SERVER", value)
-end
-
-function logger.warn(resource, value)
-    warn(resource, "SERVER", value)
-end
-
-function logger.error(resource, value)
-    error(resource, "SERVER", value)
-end
-
-function logger.fatal(resource, value)
-    fatal(resource, "SERVER", value)
-end
--------------------------------------------------------------------
--- [ EVENTS ]
--------------------------------------------------------------------
-RegisterServerEvent("Logs:Log", function(level, resource, value)
-    sendToLog(level, resource, "SERVER", value)
+RegisterNetEvent(scriptName, function(data, level, resource)
+    log(0, data, level, resource, "SERVER")
 end)
 
-RegisterServerEvent("Logs:Client", function(level, resource, value)
-    local log = sendToLog(level, resource, "CLIENT", value)
-    if(log and logClient) then
-        TriggerClientEvent("Logs:LogBack", source, log)
-    end
+RegisterNetEvent(scriptName .. ":Server:Log", function(data, level, resource)
+    log(source, data, level, resource, "CLIENT")
 end)
 
 RegisterServerEvent("onServerResourceStop", function(resource)
-    sendToLog("TRACE", resource, "SERVER", "Stopped")
+    log(0, "Stopped", "TRACE", resource, "SERVER")
 end)
 
 RegisterServerEvent("onServerResourceStart", function(resource)
-    sendToLog("TRACE", resource, "SERVER", "Started")
+    log(0, "Started", "TRACE", resource, "SERVER")
 end)
 
-return logger
+RegisterCommand('logtest', function(source, args, rawCommand)
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "TRACE", scriptName, "SERVER")
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "DEBUG", scriptName, "SERVER")
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "INFO", scriptName, "SERVER")
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "WARN", scriptName, "SERVER")
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "ERROR", scriptName, "SERVER")
+    log(source, string.format("Enabled %s logs, overriden with %s", Config.LogLevel, Config.ResourceOverride[scriptName]), "FATAL", scriptName, "SERVER")
+end)
