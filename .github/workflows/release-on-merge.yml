@@ -33,7 +33,9 @@ jobs:
         with:
           name: ${{ github.repository }}
           path: |
-            /**/*
+            /client/*
+            /server/*
+            fxmanifest.lua
             !README.md
             !version
             !.github/**/*
