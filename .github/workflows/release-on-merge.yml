@@ -31,6 +31,8 @@ jobs:
       - name: Copy files
         run: |
           mkdir -p release/${{ github.event.repository.name }}
+          mkdir -p release/${{ github.event.repository.name }}/client
+          mkdir -p release/${{ github.event.repository.name }}/server
           cp fxmanifest.lua release/${{ github.event.repository.name }}
           cp -r client/* release/${{ github.event.repository.name }}/client
           cp -r server/* release/${{ github.event.repository.name }}/server
